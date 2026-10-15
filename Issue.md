@@ -1,99 +1,135 @@
-# Planning: Inisialisasi Project Backend (Bun + ElysiaJS + Drizzle + MySQL)
+# [TASK] Implementasi Fitur Registrasi Pengguna Baru (`POST /api/users`)
 
-Dokumen ini berisi panduan high-level dan status pengerjaan untuk project backend baru pada repositori ini.
+## 1. Ringkasan & Tujuan
+Dokumen ini merupakan panduan implementasi teknis (**step-by-step issue**) untuk membuat fitur registrasi user baru pada backend berbasis **Bun + ElysiaJS + Drizzle ORM + MySQL**.
 
----
-
-## 1. Overview & Tujuan Project
-Membangun template/fondasi backend service modern, cepat, dan type-safe menggunakan ekosistem **Bun**, framework **ElysiaJS**, ORM **Drizzle**, dan database **MySQL**.
-
----
-
-## 2. Tech Stack
-- **Runtime & Package Manager**: [Bun](https://bun.sh/) (v1.4.3)
-- **Web Framework**: [ElysiaJS](https://elysiajs.com/) (v1.4.30)
-- **ORM**: [Drizzle ORM](https://orm.drizzle.team/) (`drizzle-orm` v0.45.4, `drizzle-kit` v0.31.11)
-- **Database Driver**: `mysql2` (v3.24.6)
-- **Database**: MySQL Server 8.0+
-- **Language**: TypeScript
+Target pelaksana: **Junior Programmer** atau **AI Model (Budget/Small LLM)**.
+Instruksi dibuat sangat eksplisit, minim ambiguitas, dan dilengkapi contoh kode serta perintah yang dapat langsung dieksekusi.
 
 ---
 
-## 3. High-Level Implementation Steps
+## 2. Spesifikasi Teknis
 
-### Phase 1: Inisialisasi Project & Dependensi
-- [x] Inisialisasi project Bun di root folder (`bun init`).
-- [x] Setup `tsconfig.json` yang sesuai dengan standar Bun dan Elysia.
-- [x] Install dependensi utama:
-  - `elysia`
-  - `drizzle-orm`
-  - `mysql2`
-- [x] Install dependensi pengembangan (DevDependencies):
-  - `drizzle-kit`
-  - `@types/bun`
-- [x] Buat file konfigurasi environment `.env` dan `.env.example` (memuat `PORT`, `DATABASE_HOST`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_NAME`, dll).
-- [x] Setup `.gitignore` (mengabaikan `node_modules`, `.env`, dll).
+### A. Skema Database (Tabel `users`)
+Tabel `users` pada database MySQL harus memiliki spesifikasi kolom sebagai berikut:
 
-### Phase 2: Struktur Direktori (High-Level Architecture)
-Struktur folder modular di dalam `src/`:
-```text
-.
-├── src/
-│   ├── db/
-│   │   ├── index.ts        # Inisialisasi koneksi MySQL pool & Drizzle instance
-│   │   └── schema/         # Definisi tabel/schema database Drizzle
-│   │       ├── index.ts
-│   │       └── users.ts
-│   ├── routes/             # Controller / Route endpoints Elysia
-│   │   └── user.routes.ts
-│   └── index.ts            # Entrypoint utama aplikasi Elysia
-├── drizzle/                # Output migrasi database (dihasilkan drizzle-kit)
-│   └── 0000_freezing_terror.sql
-├── drizzle.config.ts       # Konfigurasi Drizzle Kit untuk migrasi & schema path
-├── .env.example
-├── .env
-├── package.json
-└── README.md
+| Nama Kolom   | Tipe Data      | Atribut / Constraint                                      | Keterangan |
+| :---         | :---           | :---                                                      | :--- |
+| `id`         | `INT`          | `AUTO_INCREMENT`, `PRIMARY KEY`                           | Identifier unik |
+| `name`       | `VARCHAR(255)` | `NOT NULL`                                                | Nama lengkap user |
+| `email`      | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`                                      | Email (wajib unik agar tidak bisa duplikat) |
+| `password`   | `VARCHAR(255)` | `NOT NULL`                                                | String hasil hash **bcrypt** (dilarang plain text!) |
+| `created_at` | `TIMESTAMP`    | `DEFAULT CURRENT_TIMESTAMP`, `NOT NULL`                   | Waktu pembuatan user |
+
+---
+
+### B. Kontrak API (API Contract)
+
+#### **Endpoint**: `POST /api/users`
+Header: `Content-Type: application/json`
+
+#### **Request Body**:
+```json
+{
+  "name": "dimas",
+  "email": "dimas@localhost",
+  "password": "rahasia"
+}
 ```
 
-### Phase 3: Setup Database & Drizzle ORM
-- [x] Buat konfigurasi koneksi database MySQL di `src/db/index.ts` menggunakan pool `mysql2/promise` dan Drizzle.
-- [x] Buat schema tabel `users` di `src/db/schema/users.ts` dan diekspor via `src/db/schema/index.ts`.
-- [x] Buat file `drizzle.config.ts` untuk mengarahkan schema path, database credentials, dan output migrasi.
-- [x] Tambahkan scripts di `package.json` untuk manajemen database:
-  - Generate migrasi (`bun run db:generate`)
-  - Push schema (`bun run db:push`)
-  - Drizzle Studio viewer (`bun run db:studio`)
+#### **Response Body (Sukses - HTTP 201 Created atau 200 OK)**:
+```json
+{
+  "data": "OK"
+}
+```
 
-### Phase 4: Setup ElysiaJS Server
-- [x] Buat server instance Elysia di `src/index.ts`.
-- [x] Buat endpoint dasar:
-  - `GET /` untuk info layanan.
-  - `GET /health` untuk health check & uptime.
-- [x] Hubungkan router dengan modul database:
-  - Buat router CRUD pengguna (`/api/users`) menggunakan Drizzle.
-- [x] Tambahkan script runner di `package.json`:
-  - `bun run dev` (`bun --watch src/index.ts`)
-  - `bun run start` (`bun run src/index.ts`)
-
-### Phase 5: Dokumentasi & Verifikasi
-- [x] Buat `README.md` lengkap yang menjelaskan:
-  - Cara instalasi dependensi
-  - Setup `.env`
-  - Perintah migrasi database
-  - Cara menjalankan server
-  - Daftar endpoint dan contoh `curl`
-- [x] Lakukan verifikasi end-to-end:
-  - Server dapat dinyalakan tanpa error.
-  - Endpoint `/` dan `/health` teruji memberikan response JSON yang valid.
-  - Typecheck (`bun check`) lolos 100% tanpa error.
-  - `db:generate` berhasil membuat file migrasi SQL.
+#### **Response Body (Error: Email Sudah Terdaftar - HTTP 400 Bad Request)**:
+```json
+{
+  "Error": "Email sudah terdaftar"
+}
+```
 
 ---
 
-## 4. Kriteria Keberhasilan (Acceptance Criteria)
-1. Project dapat dijalankan dengan perintah `bun run dev`. (Status: Berhasil)
-2. Drizzle dapat membaca schema dan berhasil generate migrasi SQL. (Status: Berhasil)
-3. ElysiaJS melayani request HTTP dan mengembalikan response JSON yang valid. (Status: Berhasil)
-4. TypeScript bersih tanpa type error (`bun check` lolos). (Status: Berhasil)
-5. Kode terstruktur modular dan siap dikembangkan lebih lanjut. (Status: Berhasil)
+### C. Struktur Folder & Standar Penamaan File
+Seluruh kode logic dan routing harus dipisahkan sesuai arsitektur modular berikut di dalam direktori `src/`:
+
+```text
+src/
+├── db/
+│   ├── index.ts                # Koneksi DB Drizzle & MySQL
+│   └── schema/
+│       ├── index.ts            # Export schema
+│       └── users.ts            # Definisi schema tabel users
+├── routes/
+│   └── users-routes.ts         # Routing ElysiaJS
+├── service/
+│   └── users-service.ts        # Business logic: hash password, cek email, insert user
+└── index.ts                    # Entrypoint aplikasi (mount router)
+```
+
+---
+
+## 3. Langkah-Langkah Implementasi (Step-by-Step)
+
+### Tahap 1: Update Schema Database Drizzle & Eksekusi Migrasi
+1. Buka file `src/db/schema/users.ts`.
+2. Tambahkan kolom `password` tipe `varchar("password", { length: 255 }).notNull()`.
+3. Pastikan kolom `email` memiliki constraint `.unique()`.
+
+### Tahap 2: Metode Hashing Password (Bcrypt)
+Gunakan API native Bun:
+```typescript
+const hashedPassword = await Bun.password.hash(password, {
+  algorithm: "bcrypt",
+  cost: 10,
+});
+```
+
+### Tahap 3: Buat Layer Service (`src/service/users-service.ts`)
+Tulis logika bisnis untuk:
+- Mencari apakah email sudah ada di database (`findUserByEmail`).
+- Melakukan hashing password menggunakan bcrypt.
+- Menyimpan data user baru ke database (`createUser`).
+
+### Tahap 4: Buat Routing ElysiaJS (`src/routes/users-routes.ts`)
+Definisikan endpoint `POST /` dengan prefix `/api/users`.
+
+### Tahap 5: Daftarkan Route ke Main Entrypoint (`src/index.ts`)
+Mount `usersRoutes` pada server Elysia di `src/index.ts`.
+
+---
+
+## 4. Panduan Verifikasi & Pengujian (Testing)
+
+### Kasus Uji 1: Registrasi Pengguna Baru (Berhasil)
+```bash
+curl -X POST http://localhost:3000/api/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "dimas",
+    "email": "dimas@localhost",
+    "password": "rahasia"
+  }'
+```
+Response: `{ "data": "OK" }`
+
+### Kasus Uji 2: Registrasi Email Duplikat (Gagal)
+Response: `{ "Error": "Email sudah terdaftar" }`
+
+---
+
+## 5. Checklist Penyelesaian (Definition of Done)
+- [x] Skema tabel `users` telah memiliki kolom `id`, `name`, `email`, `password`, dan `created_at`.
+- [x] Kolom `email` berstatus `UNIQUE`.
+- [x] Migrasi Drizzle berhasil di-generate dan diterapkan ke database (`bun run db:push`).
+- [x] Folder `src/service/` dibuat dan berisi file `users-service.ts`.
+- [x] Password di-hash menggunakan algoritma **bcrypt** sebelum disimpan ke database.
+- [x] Folder `src/routes/` berisi file `users-routes.ts`.
+- [x] Endpoint `POST /api/users` mengembalikan `{ "data": "OK" }` jika sukses.
+- [x] Endpoint `POST /api/users` mengembalikan `{ "Error": "Email sudah terdaftar" }` jika email sudah terdaftar.
+- [x] File `src/index.ts` berhasil meng-import dan me-mount `usersRoutes`.
+- [x] Seluruh kasus uji telah diuji dan lolos.
+- [x] `bun run typecheck` lolos tanpa error.

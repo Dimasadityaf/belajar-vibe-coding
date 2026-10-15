@@ -1,9 +1,9 @@
 import { Elysia } from "elysia";
-import { userRoutes } from "./routes/user.routes";
+import { usersRoutes } from "./routes/users-routes";
 
 const port = Number(process.env.PORT) || 3000;
 
-const app = new Elysia()
+export const app = new Elysia()
   .get("/", () => ({
     message: "Welcome to Vibe Coding API!",
     status: "ok",
@@ -17,7 +17,7 @@ const app = new Elysia()
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
   }))
-  .use(userRoutes)
+  .use(usersRoutes)
   .listen(port);
 
 console.log(`🦊 Elysia server is running at http://${app.server?.hostname}:${app.server?.port}`);
