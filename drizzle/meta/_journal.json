@@ -8,6 +8,13 @@
       "when": 1791984910958,
       "tag": "0000_freezing_terror",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1792055109628,
+      "tag": "0001_superb_warhawk",
+      "breakpoints": true
     }
   ]
 }
